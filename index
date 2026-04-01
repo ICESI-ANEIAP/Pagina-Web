@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Capítulo ICESI — ANEIAP</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&family=Raleway:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <?!= include('Styles'); ?>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════
+     LOADING SCREEN
+══════════════════════════════════════════════════════ -->
+<div id="loading-screen">
+  <div class="loader-content">
+    <div class="loader-logo">
+      <img src="https://raw.githubusercontent.com/tu-usuario/icesi-web/main/assets/logo-icesi.png"
+           onerror="this.style.display='none'" alt="ICESI">
+      <div class="loader-eagle">🦅</div>
+    </div>
+    <div class="loader-bar"><div class="loader-fill"></div></div>
+    <p class="loader-text">Cargando Capítulo ICESI...</p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     NAVEGACIÓN
+══════════════════════════════════════════════════════ -->
+<nav id="navbar" class="navbar">
+  <div class="nav-inner">
+    <div class="nav-logo">
+      <img id="nav-logo-img" src="" onerror="this.style.display='none'" alt="ICESI">
+      <span class="nav-logo-text">ICESI</span>
+    </div>
+    <button class="nav-toggle" onclick="toggleMobileMenu()" aria-label="Menú">
+      <span></span><span></span><span></span>
+    </button>
+    <ul class="nav-links" id="nav-links">
+      <li><a href="#inicio" onclick="showSection('home')">Inicio</a></li>
+      <li><a href="#quienes" onclick="showSection('quienes')">¿Quiénes Somos?</a></li>
+      <li><a href="#areas" onclick="showSection('areas')">Áreas</a></li>
+      <li><a href="#proyectos" onclick="showSection('proyectos')">Proyectos</a></li>
+      <li><a href="#miembros" onclick="showSection('miembros')">Miembros</a></li>
+      <li><a href="#contacto">Contacto</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════════════════════
+     PÁGINA PRINCIPAL (HOME)
+══════════════════════════════════════════════════════ -->
+<div id="page-home" class="page-section active">
+
+  <!-- HERO -->
+  <section class="hero" id="inicio">
+    <div class="hero-media">
+      <video id="hero-video" autoplay muted loop playsinline class="hero-video" style="display:none">
+        <source src="" type="video/mp4">
+      </video>
+      <img id="hero-img" src="" onerror="this.style.display='none'" alt="Hero" class="hero-img" style="display:none">
+      <div class="hero-overlay"></div>
+    </div>
+    <div class="hero-content">
+      <p class="hero-eyebrow">BIENVENIDOS AL</p>
+      <div class="hero-logo-wrap">
+        <img id="hero-logo" src="" onerror="this.parentElement.innerHTML='<div class=hero-eagle>🦅</div><div class=hero-brand>CAPÍTULO<br><strong>ICESI</strong></div>'" alt="ICESI Logo">
+      </div>
+      <p id="hero-subtitulo" class="hero-subtitle"></p>
+    </div>
+    <div class="hero-scroll-hint">
+      <div class="scroll-arrow"></div>
+    </div>
+  </section>
+
+  <!-- QUOTE SECTION -->
+  <section class="quote-section">
+    <div class="quote-bg-deco"></div>
+    <div class="container">
+      <div class="quote-logo">
+        <img id="quote-logo" src="" onerror="this.style.display='none'" alt="Logo">
+      </div>
+      <h2 id="hero-titulo-quote" class="quote-text"></h2>
+      <div class="quote-deco-line"></div>
+    </div>
+  </section>
+
+  <!-- CARDS GRID -->
+  <section class="cards-section" id="cards">
+    <div class="container">
+      <div class="cards-grid" id="cards-grid">
+        <!-- Generadas dinámicamente -->
+      </div>
+    </div>
+  </section>
+
+  <!-- WAVE SECTION / FOOTER TOP -->
+  <section class="wave-section">
+    <div class="wave-svg">
+      <svg viewBox="0 0 1440 320" preserveAspectRatio="none">
+        <path fill="var(--c-primary)" fill-opacity="0.08" d="M0,192L48,186.7C96,181,192,171,288,176C384,181,480,203,576,213.3C672,224,768,224,864,213.3C960,203,1056,181,1152,165.3C1248,149,1344,139,1392,133.3L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
+        <path fill="var(--c-primary)" fill-opacity="0.15" d="M0,256L48,261.3C96,267,192,277,288,261.3C384,245,480,203,576,197.3C672,192,768,224,864,229.3C960,235,1056,213,1152,218.7C1248,224,1344,256,1392,272L1440,288L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
+      </svg>
+    </div>
+    <div class="wave-logos">
+      <img id="footer-aneiap" src="" onerror="this.style.display='none'" alt="ANEIAP">
+      <img id="footer-icesi" src="" onerror="this.style.display='none'" alt="ICESI">
+    </div>
+  </section>
+
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SECCIONES INTERNAS (dinámicas)
+══════════════════════════════════════════════════════ -->
+<div id="page-inner" class="page-section" style="display:none">
+  <div class="inner-header">
+    <button class="back-btn" onclick="showSection('home')">
+      <span>←</span> Inicio
+    </button>
+    <h1 class="inner-title" id="inner-title"></h1>
+  </div>
+  <div class="inner-content" id="inner-content">
+    <!-- Contenido dinámico -->
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     FOOTER
+══════════════════════════════════════════════════════ -->
+<footer class="site-footer" id="contacto">
+  <div class="footer-inner">
+    <div class="footer-logos">
+      <img id="footer-logo-aneiap" src="" onerror="this.style.display='none'" alt="ANEIAP">
+      <img id="footer-logo-icesi" src="" onerror="this.style.display='none'" alt="ICESI">
+    </div>
+    <div class="footer-social" id="footer-social"></div>
+    <p class="footer-copy" id="footer-copy">Plataforma realizada por el Área de Proyectos Gestión 2025</p>
+    <p class="footer-sub" id="footer-sub"></p>
+  </div>
+</footer>
+
+<?!= include('JavaScript'); ?>
+</body>
+</html>
