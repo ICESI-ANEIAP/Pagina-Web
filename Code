@@ -1,0 +1,338 @@
+// ============================================================
+//  CAPITULO ICESI — Google Apps Script Backend
+//  CMS conectado a Google Sheets
+//  Repositorio: GitHub | Backend: GAS | CMS: Google Sheets
+// ============================================================
+
+const SHEET_ID = '1V2CRerReONmFwg_NONub-CglDZhMaL1d8PEf3Qi1liA';
+
+// ── Hojas del CMS ──────────────────────────────────────────
+const SHEETS = {
+  CONFIG:       'Config',
+  CARDS:        'Cards',
+  QUIENES:      'Quienes_Somos',
+  MISION:       'Mision_Vision',
+  AREAS:        'Areas',
+  CRONOLOGIA:   'Linea_Cronologica',
+  PROYECTOS:    'Proyectos',
+  DOCUMENTOS:   'Documentos',
+  ENTREVISTAS:  'Entrevistas',
+  MIEMBROS:     'Miembros',
+  JUNTAS:       'Juntas',
+  NORMATIVA:    'Normativa',
+  ESTRUCTURA:   'Estructura',
+  DERECHOS:     'Derechos',
+  FOOTER:       'Footer'
+};
+
+// ── Entry point ────────────────────────────────────────────
+function doGet(e) {
+  const page = e && e.parameter && e.parameter.page ? e.parameter.page : 'index';
+  const template = HtmlService.createTemplateFromFile('index');
+  template.page = page;
+  const html = template.evaluate()
+    .setTitle('Capítulo ICESI — ANEIAP')
+    .setFaviconUrl('https://raw.githubusercontent.com/tu-usuario/icesi-web/main/assets/favicon.png')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  return html;
+}
+
+// ── Include helper ─────────────────────────────────────────
+function include(filename) {
+  return HtmlService.createHtmlOutputFromFile(filename).getContent();
+}
+
+// ── Obtener spreadsheet ────────────────────────────────────
+function getSpreadsheet() {
+  return SpreadsheetApp.openById(SHEET_ID);
+}
+
+function getSheet(name) {
+  const ss = getSpreadsheet();
+  let sheet = ss.getSheetByName(name);
+  if (!sheet) {
+    // Crear la hoja si no existe
+    sheet = ss.insertSheet(name);
+  }
+  return sheet;
+}
+
+// ── Leer datos genérico ────────────────────────────────────
+function sheetToJSON(sheetName) {
+  try {
+    const sheet = getSheet(sheetName);
+    const data = sheet.getDataRange().getValues();
+    if (data.length < 2) return [];
+    const headers = data[0].map(h => h.toString().trim().toLowerCase().replace(/\s+/g, '_'));
+    return data.slice(1)
+      .filter(row => row.some(cell => cell !== ''))
+      .map(row => {
+        const obj = {};
+        headers.forEach((h, i) => { obj[h] = row[i] !== undefined ? row[i].toString() : ''; });
+        return obj;
+      });
+  } catch(e) {
+    Logger.log('Error en sheetToJSON(' + sheetName + '): ' + e);
+    return [];
+  }
+}
+
+// ── Config del sitio ───────────────────────────────────────
+function getConfig() {
+  try {
+    const sheet = getSheet(SHEETS.CONFIG);
+    const data = sheet.getDataRange().getValues();
+    const config = {};
+    data.forEach(row => {
+      if (row[0]) config[row[0].toString().trim().toLowerCase().replace(/\s+/g, '_')] = row[1] ? row[1].toString() : '';
+    });
+    return config;
+  } catch(e) {
+    return {};
+  }
+}
+
+// ── Cards (cuadrícula principal) ───────────────────────────
+function getCards() {
+  return sheetToJSON(SHEETS.CARDS);
+}
+
+// ── Sección ¿Quiénes somos? ────────────────────────────────
+function getQuienesSomos() {
+  return sheetToJSON(SHEETS.QUIENES);
+}
+
+// ── Misión y Visión ────────────────────────────────────────
+function getMisionVision() {
+  return sheetToJSON(SHEETS.MISION);
+}
+
+// ── Áreas ──────────────────────────────────────────────────
+function getAreas() {
+  return sheetToJSON(SHEETS.AREAS);
+}
+
+// ── Línea Cronológica ──────────────────────────────────────
+function getCronologia() {
+  return sheetToJSON(SHEETS.CRONOLOGIA);
+}
+
+// ── Proyectos Capitulares ──────────────────────────────────
+function getProyectos() {
+  return sheetToJSON(SHEETS.PROYECTOS);
+}
+
+// ── Documentos ─────────────────────────────────────────────
+function getDocumentos() {
+  return sheetToJSON(SHEETS.DOCUMENTOS);
+}
+
+// ── Entrevistas ────────────────────────────────────────────
+function getEntrevistas() {
+  return sheetToJSON(SHEETS.ENTREVISTAS);
+}
+
+// ── Miembros Destacados ────────────────────────────────────
+function getMiembros() {
+  return sheetToJSON(SHEETS.MIEMBROS);
+}
+
+// ── Juntas Capitulares ─────────────────────────────────────
+function getJuntas() {
+  return sheetToJSON(SHEETS.JUNTAS);
+}
+
+// ── Normativa Creativa ─────────────────────────────────────
+function getNormativa() {
+  return sheetToJSON(SHEETS.NORMATIVA);
+}
+
+// ── Estructura Orgánica ────────────────────────────────────
+function getEstructura() {
+  return sheetToJSON(SHEETS.ESTRUCTURA);
+}
+
+// ── Derechos y Deberes ─────────────────────────────────────
+function getDerechos() {
+  return sheetToJSON(SHEETS.DERECHOS);
+}
+
+// ── Footer ─────────────────────────────────────────────────
+function getFooter() {
+  return sheetToJSON(SHEETS.FOOTER);
+}
+
+// ── Obtener TODO el contenido de una vez ───────────────────
+function getAllContent() {
+  return {
+    config:      getConfig(),
+    cards:       getCards(),
+    quienes:     getQuienesSomos(),
+    mision:      getMisionVision(),
+    areas:       getAreas(),
+    cronologia:  getCronologia(),
+    proyectos:   getProyectos(),
+    documentos:  getDocumentos(),
+    entrevistas: getEntrevistas(),
+    miembros:    getMiembros(),
+    juntas:      getJuntas(),
+    normativa:   getNormativa(),
+    estructura:  getEstructura(),
+    derechos:    getDerechos()
+  };
+}
+
+// ── Setup inicial: crea hojas con headers ──────────────────
+function setupSheets() {
+  const ss = getSpreadsheet();
+
+  const schemas = {
+    [SHEETS.CONFIG]: [
+      ['clave', 'valor'],
+      ['hero_titulo', 'BIENVENIDOS AL CAPÍTULO ICESI'],
+      ['hero_subtitulo', 'Somos Alegría, Somos Pasión, Somos el Sabor de la Asociación'],
+      ['hero_imagen_url', ''],
+      ['hero_video_url', ''],
+      ['logo_url', ''],
+      ['logo_aneiap_url', ''],
+      ['color_primario', '#1a2d5a'],
+      ['color_secundario', '#4a90d9'],
+      ['color_acento', '#7eb8f7'],
+      ['anno_gestion', '2025'],
+    ],
+    [SHEETS.CARDS]: [
+      ['id','titulo','descripcion','link','color_fondo','color_texto','icono_url','imagen_url','visible','orden'],
+      ['quienes','¿Quiénes Somos?','Conoce nuestra asociación','quienes','#1a2d5a','#ffffff','','','TRUE','1'],
+      ['mision','Misión y Visión','Nuestros pilares','mision','#4a90d9','#ffffff','','','TRUE','2'],
+      ['areas','Conoce más de las áreas','Nuestras áreas de trabajo','areas','#7eb8f7','#1a2d5a','','','TRUE','3'],
+      ['cronologia','Línea Cronológica','Nuestra historia','cronologia','#b8d4f0','#1a2d5a','','','TRUE','4'],
+      ['normativa','Normativa Creativa','Reglamentos y normas','normativa','#1a2d5a','#ffffff','','','TRUE','5'],
+      ['proyectos','Proyectos Capitulares','Nuestros proyectos','proyectos','#4a90d9','#ffffff','','','TRUE','6'],
+      ['documentos','Documentos','Archivos importantes','documentos','#b8d4f0','#1a2d5a','','','TRUE','7'],
+      ['entrevistas','Entrevistas 2025-1','Videos y entrevistas','entrevistas','#1a2d5a','#ffffff','','','TRUE','8'],
+      ['derechos','Derechos y Deberes','De los asociados','derechos','#4a90d9','#ffffff','','','TRUE','9'],
+      ['miembros','Miembros Destacados','Nuestro equipo','miembros','#7eb8f7','#1a2d5a','','','TRUE','10'],
+      ['juntas','Juntas Capitulares 2016-2025','Historia de juntas','juntas','#b8d4f0','#1a2d5a','','','TRUE','11'],
+      ['estructura','Estructura Orgánica','Órganos de decisión','estructura','#1a2d5a','#ffffff','','','TRUE','12'],
+    ],
+    [SHEETS.QUIENES]: [
+      ['orden','tipo','titulo','contenido','imagen_url','video_url'],
+      ['1','intro','¿Quiénes Somos?','ANEIAP es la Asociación Nacional de Estudiantes de Ingeniería Administrativa, Industrial y afines. El Capítulo ICESI es la sede en la Universidad ICESI...','',''],
+    ],
+    [SHEETS.MISION]: [
+      ['tipo','titulo','contenido','imagen_url'],
+      ['mision','Misión','Nuestra misión es...',''],
+      ['vision','Visión','Nuestra visión es...',''],
+      ['valores','Valores','Nuestros valores son...',''],
+    ],
+    [SHEETS.AREAS]: [
+      ['id','nombre','descripcion','color','icono_url','imagen_url','visible'],
+      ['1','Área de Proyectos','Gestión y ejecución de proyectos','#1a2d5a','','','TRUE'],
+      ['2','Área de Comunicaciones','Comunicación interna y externa','#4a90d9','','','TRUE'],
+    ],
+    [SHEETS.CRONOLOGIA]: [
+      ['anno','titulo','descripcion','imagen_url','destacado'],
+      ['2016','Fundación','El capítulo ICESI fue fundado...','','TRUE'],
+      ['2025','Gestión 2025','Logros del año 2025...','','FALSE'],
+    ],
+    [SHEETS.PROYECTOS]: [
+      ['id','titulo','descripcion','estado','categoria','imagen_url','archivo_url','anno','visible'],
+      ['1','Proyecto Ejemplo','Descripción del proyecto','Activo','Gestión','','','2025','TRUE'],
+    ],
+    [SHEETS.DOCUMENTOS]: [
+      ['id','titulo','descripcion','categoria','archivo_url','fecha','visible'],
+      ['1','Estatutos','Estatutos del capítulo','Legal','','2025-01-01','TRUE'],
+    ],
+    [SHEETS.ENTREVISTAS]: [
+      ['id','titulo','descripcion','video_url','thumbnail_url','entrevistado','cargo','fecha','visible'],
+      ['1','Entrevista Presidente','Entrevista con el presidente...','https://www.youtube.com/embed/VIDEO_ID','','Nombre','Presidente','2025-01-01','TRUE'],
+    ],
+    [SHEETS.MIEMBROS]: [
+      ['id','nombre','cargo','area','foto_url','bio','linkedin','instagram','visible','orden'],
+      ['1','Nombre Apellido','Presidente','Junta Directiva','','Bio del miembro','','','TRUE','1'],
+    ],
+    [SHEETS.JUNTAS]: [
+      ['anno','cargo','nombre','foto_url','visible'],
+      ['2025','Presidente','Nombre Apellido','','TRUE'],
+      ['2024','Presidente','Nombre Apellido','','TRUE'],
+    ],
+    [SHEETS.NORMATIVA]: [
+      ['id','titulo','descripcion','categoria','archivo_url','fecha','visible'],
+      ['1','Reglamento Interno','Normativa interna del capítulo','Reglamento','','2025','TRUE'],
+    ],
+    [SHEETS.ESTRUCTURA]: [
+      ['id','cargo','nombre','area','nivel','foto_url','descripcion','visible'],
+      ['1','Asamblea General','','General','0','','','TRUE'],
+      ['2','Junta Directiva','','Directiva','1','','','TRUE'],
+      ['3','Presidente','Nombre','Directiva','2','','','TRUE'],
+    ],
+    [SHEETS.DERECHOS]: [
+      ['tipo','orden','titulo','contenido'],
+      ['derecho','1','Derecho 1','Los asociados tienen derecho a...'],
+      ['deber','1','Deber 1','Los asociados tienen el deber de...'],
+    ],
+    [SHEETS.FOOTER]: [
+      ['clave','valor'],
+      ['texto_copyright','Plataforma realizada por el Área de Proyectos Gestión 2025'],
+      ['texto_secundario','Capítulo ICESI — ANEIAP'],
+      ['email_contacto',''],
+      ['instagram',''],
+      ['facebook',''],
+      ['linkedin',''],
+    ]
+  };
+
+  Object.entries(schemas).forEach(([name, rows]) => {
+    let sheet = ss.getSheetByName(name);
+    if (!sheet) {
+      sheet = ss.insertSheet(name);
+      sheet.getRange(1, 1, rows.length, rows[0].length).setValues(rows);
+      // Formato de encabezados
+      const headerRange = sheet.getRange(1, 1, 1, rows[0].length);
+      headerRange.setBackground('#1a2d5a');
+      headerRange.setFontColor('#ffffff');
+      headerRange.setFontWeight('bold');
+      sheet.setFrozenRows(1);
+      Logger.log('Hoja creada: ' + name);
+    } else {
+      Logger.log('Hoja ya existe: ' + name);
+    }
+  });
+
+  SpreadsheetApp.getUi().alert('✅ Hojas configuradas correctamente.\n\nAhora puedes comenzar a agregar contenido en cada hoja.');
+}
+
+// ── Menú personalizado en el Sheet ────────────────────────
+function onOpen() {
+  SpreadsheetApp.getUi()
+    .createMenu('🦅 ICESI Web')
+    .addItem('⚙️ Configurar hojas', 'setupSheets')
+    .addItem('🌐 Abrir sitio web', 'openWebsite')
+    .addSeparator()
+    .addItem('📋 Ver instrucciones', 'showInstructions')
+    .addToUi();
+}
+
+function openWebsite() {
+  const url = ScriptApp.getService().getUrl();
+  const html = HtmlService.createHtmlOutput(
+    `<script>window.open('${url}','_blank');google.script.host.close();</script>`
+  );
+  SpreadsheetApp.getUi().showModalDialog(html, 'Abriendo sitio...');
+}
+
+function showInstructions() {
+  const html = HtmlService.createHtmlOutput(`
+    <style>body{font-family:Arial;padding:20px;color:#333;}h2{color:#1a2d5a;}code{background:#f0f4ff;padding:2px 6px;border-radius:4px;}</style>
+    <h2>📖 Instrucciones de uso</h2>
+    <p><b>1. Config:</b> Personaliza colores, logos y textos del hero.</p>
+    <p><b>2. Cards:</b> Gestiona las tarjetas de la página principal. El campo <code>link</code> determina qué sección abre.</p>
+    <p><b>3. Imágenes:</b> Sube imágenes a Google Drive (compartir como "Cualquiera con el enlace"), copia la URL directa y pégala en la columna correspondiente.</p>
+    <p><b>4. Videos:</b> Para YouTube, usa el formato: <code>https://www.youtube.com/embed/ID_DEL_VIDEO</code></p>
+    <p><b>5. Visible:</b> Escribe <code>TRUE</code> para mostrar o <code>FALSE</code> para ocultar un elemento.</p>
+    <p><b>6.</b> Los cambios se reflejan automáticamente en el sitio al recargar.</p>
+    <br><p style="color:#4a90d9;font-weight:bold;">¡Cualquier cambio en el Sheet actualiza el sitio en tiempo real!</p>
+  `).setWidth(500).setHeight(350);
+  SpreadsheetApp.getUi().showModalDialog(html, '📖 Instrucciones ICESI Web');
+}
