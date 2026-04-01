@@ -1,0 +1,586 @@
+<script>
+// ═══════════════════════════════════════════════════════════
+//  CAPITULO ICESI — JavaScript del cliente
+//  Carga contenido del Sheet vía google.script.run
+// ═══════════════════════════════════════════════════════════
+
+let siteContent = null;
+let currentSection = 'home';
+
+// ── Inicializar ──────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', function() {
+  // Navbar scroll
+  window.addEventListener('scroll', handleNavbarScroll);
+  // Cargar contenido
+  loadAllContent();
+});
+
+function handleNavbarScroll() {
+  const navbar = document.getElementById('navbar');
+  if (window.scrollY > 50) {
+    navbar.classList.add('scrolled');
+  } else {
+    navbar.classList.remove('scrolled');
+  }
+}
+
+// ── Cargar todo el contenido ─────────────────────────────
+function loadAllContent() {
+  google.script.run
+    .withSuccessHandler(function(data) {
+      siteContent = data;
+      applyConfig(data.config);
+      renderCards(data.cards);
+      renderFooter(data);
+      hideLoader();
+    })
+    .withFailureHandler(function(err) {
+      console.error('Error cargando contenido:', err);
+      hideLoader();
+      showError('Error cargando el contenido. Por favor recarga la página.');
+    })
+    .getAllContent();
+}
+
+// ── Ocultar loader ───────────────────────────────────────
+function hideLoader() {
+  setTimeout(function() {
+    const loader = document.getElementById('loading-screen');
+    if (loader) loader.classList.add('hidden');
+  }, 2400);
+}
+
+// ── Aplicar configuración ────────────────────────────────
+function applyConfig(config) {
+  if (!config) return;
+
+  // Hero
+  const heroTitulo = config.hero_titulo || 'BIENVENIDOS AL CAPÍTULO ICESI';
+  const heroSubtitulo = config.hero_subtitulo || '';
+
+  // Quote
+  const quoteTxt = document.getElementById('hero-titulo-quote');
+  if (quoteTxt) quoteTxt.textContent = heroSubtitulo.toUpperCase() || 'SOMOS ALEGRÍA, SOMOS PASIÓN, SOMOS EL SABOR DE LA ASOCIACIÓN';
+
+  // Subtitle hero
+  const heroSub = document.getElementById('hero-subtitulo');
+  if (heroSub) heroSub.textContent = heroSubtitulo;
+
+  // Hero video
+  if (config.hero_video_url && config.hero_video_url.trim()) {
+    const vid = document.getElementById('hero-video');
+    if (vid) {
+      vid.querySelector('source').src = config.hero_video_url;
+      vid.style.display = 'block';
+      vid.load();
+    }
+  } else if (config.hero_imagen_url && config.hero_imagen_url.trim()) {
+    const img = document.getElementById('hero-img');
+    if (img) {
+      img.src = config.hero_imagen_url;
+      img.style.display = 'block';
+    }
+  }
+
+  // Logos
+  const heroLogo = document.getElementById('hero-logo');
+  if (heroLogo && config.logo_url) {
+    heroLogo.src = config.logo_url;
+  }
+  const navLogo = document.getElementById('nav-logo-img');
+  if (navLogo && config.logo_url) navLogo.src = config.logo_url;
+  const quoteLogo = document.getElementById('quote-logo');
+  if (quoteLogo && config.logo_url) quoteLogo.src = config.logo_url;
+
+  const aneiapLogo = config.logo_aneiap_url || '';
+  setImgSrc('footer-aneiap', aneiapLogo);
+  setImgSrc('footer-icesi', config.logo_url || '');
+  setImgSrc('footer-logo-aneiap', aneiapLogo);
+  setImgSrc('footer-logo-icesi', config.logo_url || '');
+
+  // CSS variables
+  if (config.color_primario) document.documentElement.style.setProperty('--c-primary', config.color_primario);
+  if (config.color_secundario) document.documentElement.style.setProperty('--c-secondary', config.color_secundario);
+  if (config.color_acento) document.documentElement.style.setProperty('--c-accent', config.color_acento);
+}
+
+function setImgSrc(id, src) {
+  const el = document.getElementById(id);
+  if (el && src) el.src = src;
+}
+
+// ── Render Cards ──────────────────────────────────────────
+function renderCards(cards) {
+  const grid = document.getElementById('cards-grid');
+  if (!grid || !cards) return;
+
+  const visible = cards
+    .filter(c => c.visible !== 'FALSE')
+    .sort((a, b) => parseInt(a.orden || 99) - parseInt(b.orden || 99));
+
+  if (!visible.length) {
+    grid.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><p>No hay tarjetas configuradas aún.</p></div>';
+    return;
+  }
+
+  grid.innerHTML = '';
+
+  visible.forEach(function(card, idx) {
+    const isFirst = idx === 0;
+    const el = document.createElement('div');
+    el.className = 'card' + (isFirst ? ' card-featured' : '');
+    el.onclick = function() { navigateTo(card.link || card.id, card.titulo); };
+
+    const bg = card.imagen_url ? `background-image: url('${card.imagen_url}')` : '';
+    const fondo = card.color_fondo || '#1a2d5a';
+    const texto = card.color_texto || '#ffffff';
+
+    if (isFirst) {
+      // Featured card (Quiénes somos)
+      el.innerHTML = `
+        <div class="card-bg" style="background-color:${fondo}; ${bg}"></div>
+        <div class="card-bg-overlay"></div>
+        <div class="card-inner" style="color:${texto}">
+          <div class="card-featured-logo">
+            <div class="card-featured-logo-placeholder">🦅</div>
+          </div>
+          <div class="card-featured-bottom">
+            <div class="card-featured-link">${card.titulo || ''}</div>
+            <div class="card-featured-arrow">→</div>
+          </div>
+        </div>`;
+    } else {
+      el.innerHTML = `
+        <div class="card-bg" style="background-color:${fondo}; ${bg}"></div>
+        ${bg ? '<div class="card-bg-overlay"></div>' : ''}
+        <div class="card-inner" style="color:${texto}">
+          <div class="card-plus">+</div>
+          <div class="card-title">${card.titulo || ''}</div>
+          ${card.descripcion ? `<div class="card-desc">${card.descripcion}</div>` : ''}
+        </div>`;
+    }
+
+    // Stagger animation
+    el.style.animationDelay = (idx * 0.07) + 's';
+    el.classList.add('fade-in');
+    grid.appendChild(el);
+  });
+}
+
+// ── Render Footer ─────────────────────────────────────────
+function renderFooter(data) {
+  const config = data.config || {};
+  const footerCopy = document.getElementById('footer-copy');
+  if (footerCopy && config.texto_copyright) footerCopy.textContent = config.texto_copyright;
+
+  // Social links
+  const social = document.getElementById('footer-social');
+  if (social) {
+    let socialHTML = '';
+    if (config.instagram) socialHTML += `<a href="${config.instagram}" target="_blank" title="Instagram">📸</a>`;
+    if (config.facebook) socialHTML += `<a href="${config.facebook}" target="_blank" title="Facebook">📘</a>`;
+    if (config.linkedin) socialHTML += `<a href="${config.linkedin}" target="_blank" title="LinkedIn">💼</a>`;
+    if (config.email_contacto) socialHTML += `<a href="mailto:${config.email_contacto}" title="Email">✉️</a>`;
+    social.innerHTML = socialHTML;
+  }
+}
+
+// ── Navegación ────────────────────────────────────────────
+function showSection(section) {
+  currentSection = section;
+  if (section === 'home') {
+    document.getElementById('page-home').style.display = '';
+    document.getElementById('page-home').classList.add('active');
+    document.getElementById('page-inner').style.display = 'none';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } else {
+    document.getElementById('page-home').style.display = 'none';
+    document.getElementById('page-inner').style.display = '';
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }
+  // Cerrar menú móvil
+  document.getElementById('nav-links').classList.remove('open');
+}
+
+function navigateTo(section, title) {
+  if (!section) return;
+  showSection(section);
+  document.getElementById('inner-title').textContent = title || section;
+  document.getElementById('inner-content').innerHTML = `
+    <div class="spinner-wrap"><div class="spinner"></div></div>`;
+  loadSection(section);
+}
+
+function loadSection(section) {
+  if (!siteContent) return;
+
+  const renderers = {
+    quienes:    renderQuienesSomos,
+    mision:     renderMisionVision,
+    areas:      renderAreas,
+    cronologia: renderCronologia,
+    proyectos:  renderProyectos,
+    documentos: renderDocumentos,
+    entrevistas:renderEntrevistas,
+    miembros:   renderMiembros,
+    juntas:     renderJuntas,
+    estructura: renderEstructura,
+    normativa:  renderNormativa,
+    derechos:   renderDerechos,
+  };
+
+  const fn = renderers[section];
+  if (fn) {
+    setTimeout(function() { fn(); }, 400);
+  } else {
+    document.getElementById('inner-content').innerHTML =
+      '<div class="empty-state"><div class="empty-icon">🔧</div><p>Sección en construcción</p></div>';
+  }
+}
+
+// ── Helper ────────────────────────────────────────────────
+function setContent(html) {
+  const el = document.getElementById('inner-content');
+  if (el) { el.innerHTML = html; }
+}
+
+function emptyState(msg) {
+  return `<div class="empty-state"><div class="empty-icon">📭</div><p>${msg || 'Sin contenido aún. Agrega información en el Google Sheet.'}</p></div>`;
+}
+
+function imgOrPlaceholder(url, alt, cls, placeholder) {
+  if (url && url.trim()) return `<img src="${url}" alt="${alt||''}" class="${cls||''}" loading="lazy" onerror="this.style.display='none'">`;
+  return placeholder || '';
+}
+
+// ── ¿Quiénes Somos? ──────────────────────────────────────
+function renderQuienesSomos() {
+  const data = siteContent.quienes || [];
+  if (!data.length) { setContent(emptyState()); return; }
+  let html = '';
+  data.forEach(function(item) {
+    if (item.tipo === 'intro') {
+      html += `<div class="quienes-grid fade-in">
+        <div class="quienes-text">
+          <h3>${item.titulo || '¿Quiénes Somos?'}</h3>
+          <p>${(item.contenido || '').replace(/\n/g, '<br>')}</p>
+        </div>
+        ${item.imagen_url ? `<div class="quienes-img">${imgOrPlaceholder(item.imagen_url,'Quiénes somos')}</div>` : ''}
+      </div>`;
+    } else {
+      html += `<div style="margin-top:40px;" class="fade-in">
+        <h3 style="font-family:var(--font-heading);font-weight:800;color:var(--c-primary);font-size:1.3rem;margin-bottom:12px;">${item.titulo||''}</h3>
+        <p style="color:var(--c-gray);line-height:1.8;">${(item.contenido||'').replace(/\n/g,'<br>')}</p>
+      </div>`;
+    }
+  });
+  setContent(html);
+}
+
+// ── Misión y Visión ───────────────────────────────────────
+function renderMisionVision() {
+  const data = siteContent.mision || [];
+  if (!data.length) { setContent(emptyState()); return; }
+  const icons = { mision: '🎯', vision: '👁️', valores: '⭐' };
+  let html = '<div class="mv-grid fade-in">';
+  data.forEach(function(item) {
+    const icon = icons[item.tipo] || '📋';
+    html += `<div class="mv-card">
+      <div class="mv-icon">${icon}</div>
+      <h3>${item.titulo || item.tipo}</h3>
+      <p>${(item.contenido || '').replace(/\n/g, '<br>')}</p>
+    </div>`;
+  });
+  html += '</div>';
+  setContent(html);
+}
+
+// ── Áreas ─────────────────────────────────────────────────
+function renderAreas() {
+  const data = (siteContent.areas || []).filter(a => a.visible !== 'FALSE');
+  if (!data.length) { setContent(emptyState()); return; }
+  let html = '<div class="areas-grid">';
+  data.forEach(function(area, i) {
+    html += `<div class="area-card fade-in" style="animation-delay:${i*0.08}s">
+      <div class="area-img" style="background:${area.color||'var(--c-lighter)'}">
+        ${imgOrPlaceholder(area.imagen_url, area.nombre)}
+        ${!area.imagen_url ? `<div style="height:100%;display:flex;align-items:center;justify-content:center;font-size:3rem;opacity:0.4">🏢</div>` : ''}
+      </div>
+      <div class="area-body">
+        <h3>${area.nombre || ''}</h3>
+        <p>${area.descripcion || ''}</p>
+      </div>
+    </div>`;
+  });
+  html += '</div>';
+  setContent(html);
+}
+
+// ── Línea Cronológica ─────────────────────────────────────
+function renderCronologia() {
+  const data = siteContent.cronologia || [];
+  if (!data.length) { setContent(emptyState()); return; }
+  const sorted = data.sort((a, b) => parseInt(a.anno) - parseInt(b.anno));
+  let html = '<div class="timeline">';
+  sorted.forEach(function(item, i) {
+    html += `<div class="timeline-item fade-in" style="animation-delay:${i*0.1}s">
+      <div class="timeline-dot">${item.anno || '—'}</div>
+      <div class="timeline-body">
+        <span class="anno">${item.anno || ''}</span>
+        <h3>${item.titulo || ''}</h3>
+        <p>${(item.descripcion || '').replace(/\n/g,'<br>')}</p>
+        ${imgOrPlaceholder(item.imagen_url, item.titulo, '', '')}
+      </div>
+    </div>`;
+  });
+  html += '</div>';
+  setContent(html);
+}
+
+// ── Proyectos ─────────────────────────────────────────────
+function renderProyectos() {
+  const data = (siteContent.proyectos || []).filter(p => p.visible !== 'FALSE');
+  if (!data.length) { setContent(emptyState()); return; }
+  let html = '<div class="proyectos-grid">';
+  data.forEach(function(p, i) {
+    const link = p.archivo_url ? `<a href="${p.archivo_url}" target="_blank" style="display:inline-block;margin-top:12px;color:var(--c-secondary);font-family:var(--font-heading);font-weight:700;font-size:0.85rem;">Ver proyecto →</a>` : '';
+    html += `<div class="proyecto-card fade-in" style="animation-delay:${i*0.08}s">
+      <div class="proyecto-img">
+        ${imgOrPlaceholder(p.imagen_url, p.titulo)}
+        ${!p.imagen_url ? `<div style="height:100%;display:flex;align-items:center;justify-content:center;font-size:3rem;color:var(--c-light)">📁</div>` : ''}
+      </div>
+      <div class="proyecto-body">
+        ${p.estado ? `<span class="proyecto-status">${p.estado}</span>` : ''}
+        <h3>${p.titulo || ''}</h3>
+        <p>${p.descripcion || ''}</p>
+        ${p.anno ? `<p style="font-size:0.8rem;color:var(--c-secondary);margin-top:6px;font-weight:600;">${p.anno}</p>` : ''}
+        ${link}
+      </div>
+    </div>`;
+  });
+  html += '</div>';
+  setContent(html);
+}
+
+// ── Documentos ────────────────────────────────────────────
+function renderDocumentos() {
+  const data = (siteContent.documentos || []).filter(d => d.visible !== 'FALSE');
+  if (!data.length) { setContent(emptyState()); return; }
+  let html = '<div class="docs-grid">';
+  data.forEach(function(doc, i) {
+    const onclick = doc.archivo_url ? `onclick="window.open('${doc.archivo_url}','_blank')"` : '';
+    html += `<div class="doc-item fade-in" style="animation-delay:${i*0.07}s" ${onclick}>
+      <div class="doc-icon">📄</div>
+      <div class="doc-info">
+        ${doc.categoria ? `<span class="doc-cat">${doc.categoria}</span>` : ''}
+        <h4>${doc.titulo || ''}</h4>
+        <p>${doc.descripcion || ''}</p>
+        ${doc.fecha ? `<p style="font-size:0.78rem;color:var(--c-accent);margin-top:4px;">${doc.fecha}</p>` : ''}
+      </div>
+    </div>`;
+  });
+  html += '</div>';
+  setContent(html);
+}
+
+// ── Entrevistas ───────────────────────────────────────────
+function renderEntrevistas() {
+  const data = (siteContent.entrevistas || []).filter(e => e.visible !== 'FALSE');
+  if (!data.length) { setContent(emptyState()); return; }
+  let html = '<div class="entrevistas-grid">';
+  data.forEach(function(e, i) {
+    const video = e.video_url
+      ? `<iframe src="${e.video_url}" frameborder="0" allowfullscreen loading="lazy"></iframe>`
+      : `<div style="height:100%;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.3);font-size:3rem;">▶</div>`;
+    html += `<div class="entrevista-card fade-in" style="animation-delay:${i*0.1}s">
+      <div class="entrevista-video">${video}</div>
+      <div class="entrevista-body">
+        <h3>${e.titulo || ''}</h3>
+        ${e.entrevistado ? `<p class="entrevistado">${e.entrevistado}${e.cargo ? ' — ' + e.cargo : ''}</p>` : ''}
+        ${e.descripcion ? `<p class="entrevista-desc">${e.descripcion}</p>` : ''}
+        ${e.fecha ? `<p style="font-size:0.8rem;color:var(--c-gray);margin-top:8px;">${e.fecha}</p>` : ''}
+      </div>
+    </div>`;
+  });
+  html += '</div>';
+  setContent(html);
+}
+
+// ── Miembros ──────────────────────────────────────────────
+function renderMiembros() {
+  const data = (siteContent.miembros || [])
+    .filter(m => m.visible !== 'FALSE')
+    .sort((a,b) => parseInt(a.orden||99) - parseInt(b.orden||99));
+  if (!data.length) { setContent(emptyState()); return; }
+  let html = '<div class="miembros-grid">';
+  data.forEach(function(m, i) {
+    const foto = m.foto_url
+      ? `<img src="${m.foto_url}" alt="${m.nombre||''}" loading="lazy" onerror="this.parentElement.innerHTML='👤'">`
+      : '👤';
+    html += `<div class="miembro-card fade-in" style="animation-delay:${i*0.06}s">
+      <div class="miembro-foto">${foto}</div>
+      <h3>${m.nombre || ''}</h3>
+      <p class="miembro-cargo">${m.cargo || ''}</p>
+      <p class="miembro-area">${m.area || ''}</p>
+      ${m.bio ? `<p style="font-size:0.8rem;color:var(--c-gray);margin-top:10px;line-height:1.5">${m.bio}</p>` : ''}
+      <div style="display:flex;justify-content:center;gap:10px;margin-top:12px;">
+        ${m.linkedin ? `<a href="${m.linkedin}" target="_blank" style="color:var(--c-secondary)">💼</a>` : ''}
+        ${m.instagram ? `<a href="${m.instagram}" target="_blank" style="color:var(--c-secondary)">📸</a>` : ''}
+      </div>
+    </div>`;
+  });
+  html += '</div>';
+  setContent(html);
+}
+
+// ── Juntas ────────────────────────────────────────────────
+function renderJuntas() {
+  const data = (siteContent.juntas || []).filter(j => j.visible !== 'FALSE');
+  if (!data.length) { setContent(emptyState()); return; }
+
+  // Agrupar por año
+  const byAnno = {};
+  data.forEach(function(m) {
+    const a = m.anno || 'Sin año';
+    if (!byAnno[a]) byAnno[a] = [];
+    byAnno[a].push(m);
+  });
+
+  const annos = Object.keys(byAnno).sort((a,b) => parseInt(b) - parseInt(a));
+  let activeAnno = annos[0];
+
+  let tabsHTML = '<div class="juntas-tabs" id="juntas-tabs">';
+  annos.forEach(function(anno) {
+    tabsHTML += `<button class="junta-tab${anno === activeAnno ? ' active' : ''}" onclick="selectJunta(this,'${anno}')">${anno}</button>`;
+  });
+  tabsHTML += '</div>';
+
+  let membersHTML = '<div id="junta-display">' + juntaMembersHTML(byAnno[activeAnno]) + '</div>';
+  setContent(tabsHTML + membersHTML);
+
+  // Guardar datos para uso posterior
+  window._juntasByAnno = byAnno;
+}
+
+function juntaMembersHTML(members) {
+  if (!members || !members.length) return emptyState();
+  let html = '<div class="junta-members">';
+  members.forEach(function(m) {
+    html += `<div class="junta-member fade-in">
+      <div class="cargo">${m.cargo || ''}</div>
+      <div class="nombre">${m.nombre || ''}</div>
+    </div>`;
+  });
+  html += '</div>';
+  return html;
+}
+
+function selectJunta(btn, anno) {
+  document.querySelectorAll('.junta-tab').forEach(function(t) { t.classList.remove('active'); });
+  btn.classList.add('active');
+  const display = document.getElementById('junta-display');
+  if (display && window._juntasByAnno) {
+    display.innerHTML = juntaMembersHTML(window._juntasByAnno[anno]);
+  }
+}
+
+// ── Estructura Orgánica ───────────────────────────────────
+function renderEstructura() {
+  const data = (siteContent.estructura || []).filter(e => e.visible !== 'FALSE');
+  if (!data.length) { setContent(emptyState()); return; }
+
+  // Agrupar por nivel
+  const byLevel = {};
+  data.forEach(function(e) {
+    const lvl = e.nivel || '0';
+    if (!byLevel[lvl]) byLevel[lvl] = [];
+    byLevel[lvl].push(e);
+  });
+
+  const levels = Object.keys(byLevel).sort((a,b) => parseInt(a)-parseInt(b));
+  let html = '<div class="org-chart fade-in">';
+  levels.forEach(function(lvl, idx) {
+    if (idx > 0) html += '<div class="org-connector"></div>';
+    html += '<div class="org-level">';
+    byLevel[lvl].forEach(function(node) {
+      html += `<div class="org-node">
+        <div style="font-size:0.95rem;font-weight:800;">${node.cargo || ''}</div>
+        ${node.nombre ? `<div style="font-size:0.8rem;opacity:0.8;margin-top:4px;">${node.nombre}</div>` : ''}
+        ${node.area ? `<div style="font-size:0.75rem;opacity:0.65;margin-top:2px;">${node.area}</div>` : ''}
+      </div>`;
+    });
+    html += '</div>';
+  });
+  html += '</div>';
+  setContent(html);
+}
+
+// ── Normativa ─────────────────────────────────────────────
+function renderNormativa() {
+  const data = (siteContent.normativa || []).filter(n => n.visible !== 'FALSE');
+  if (!data.length) { setContent(emptyState()); return; }
+  let html = '<div class="normativa-grid">';
+  data.forEach(function(n, i) {
+    html += `<div class="normativa-item fade-in" style="animation-delay:${i*0.07}s">
+      <div class="normativa-icon">📋</div>
+      <div class="normativa-info">
+        ${n.categoria ? `<span style="font-size:0.75rem;color:var(--c-secondary);font-family:var(--font-heading);font-weight:700;text-transform:uppercase;letter-spacing:0.08em;">${n.categoria}</span>` : ''}
+        <h4>${n.titulo || ''}</h4>
+        <p>${n.descripcion || ''}</p>
+        ${n.fecha ? `<p style="font-size:0.78rem;color:var(--c-gray);margin-top:4px;">${n.fecha}</p>` : ''}
+        ${n.archivo_url ? `<a class="normativa-link" href="${n.archivo_url}" target="_blank">Ver documento →</a>` : ''}
+      </div>
+    </div>`;
+  });
+  html += '</div>';
+  setContent(html);
+}
+
+// ── Derechos y Deberes ────────────────────────────────────
+function renderDerechos() {
+  const data = siteContent.derechos || [];
+  if (!data.length) { setContent(emptyState()); return; }
+  const derechos = data.filter(d => d.tipo === 'derecho').sort((a,b) => parseInt(a.orden)-parseInt(b.orden));
+  const deberes  = data.filter(d => d.tipo === 'deber').sort((a,b) => parseInt(a.orden)-parseInt(b.orden));
+
+  function itemsHTML(items) {
+    return items.map(function(item) {
+      return `<div class="derechos-item">
+        <h4>${item.titulo || ''}</h4>
+        ${item.contenido ? `<p>${item.contenido}</p>` : ''}
+      </div>`;
+    }).join('');
+  }
+
+  setContent(`
+    <div class="derechos-cols fade-in">
+      <div class="derechos-col">
+        <h3>✅ Derechos</h3>
+        ${itemsHTML(derechos) || emptyState('Sin derechos configurados')}
+      </div>
+      <div class="derechos-col">
+        <h3>📌 Deberes</h3>
+        ${itemsHTML(deberes) || emptyState('Sin deberes configurados')}
+      </div>
+    </div>`);
+}
+
+// ── Mobile menu ───────────────────────────────────────────
+function toggleMobileMenu() {
+  document.getElementById('nav-links').classList.toggle('open');
+}
+
+// ── Error display ─────────────────────────────────────────
+function showError(msg) {
+  const loader = document.getElementById('loading-screen');
+  if (loader) {
+    loader.innerHTML = `<div style="text-align:center;color:white;padding:40px;">
+      <div style="font-size:3rem;margin-bottom:16px;">⚠️</div>
+      <p style="font-family:Montserrat,sans-serif;font-size:1rem;">${msg}</p>
+      <button onclick="location.reload()" style="margin-top:20px;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);color:white;padding:12px 24px;border-radius:99px;cursor:pointer;font-family:Montserrat,sans-serif;font-weight:700;">
+        Recargar
+      </button>
+    </div>`;
+  }
+}
+</script>
